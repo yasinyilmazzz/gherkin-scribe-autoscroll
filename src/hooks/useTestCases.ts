@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 interface TestCase {
   id: string;
@@ -105,6 +104,28 @@ export const useTestCases = () => {
     });
   };
 
+  const importTestCase = (content: string) => {
+    const scenarios = content.split(/\n\n(?=Scenario:)/);
+    
+    scenarios.forEach(scenario => {
+      if (scenario.trim()) {
+        const scenarioMatch = scenario.match(/Scenario:\s*(.+)$/m);
+        const title = scenarioMatch ? scenarioMatch[1].trim() : 'İsimsiz Senaryo';
+        
+        const newTest = {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          title,
+          content: scenario.trim()
+        };
+        
+        savedTests.push(newTest);
+      }
+    });
+    
+    localStorage.setItem('gherkinTests', JSON.stringify(savedTests));
+    setSavedTests([...savedTests]);
+  };
+
   return {
     savedTests,
     editingId,
@@ -113,7 +134,7 @@ export const useTestCases = () => {
     saveTestCase,
     editTestCase,
     deleteTestCase,
-    exportTestCases
+    exportTestCases,
+    importTestCase
   };
 };
-

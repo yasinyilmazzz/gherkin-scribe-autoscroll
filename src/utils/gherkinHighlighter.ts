@@ -11,9 +11,9 @@ export const applySyntaxHighlighting = (text: string) => {
       const rest = keywordMatch[3];
       
       const capitalizedKeyword = keyword.charAt(0).toUpperCase() + keyword.slice(1).toLowerCase();
-      const highlightedRest = rest.replace(/"([^"]*)"/g, '<span class="parameter">"$1"</span>');
+      const highlightedRest = rest.replace(/"([^"]*)"/g, '<span class="text-blue-500">"$1"</span>');
       
-      return `<div><span class="keyword">${capitalizedKeyword}</span>${space}${highlightedRest}</div>`;
+      return `<div><span class="font-bold text-primary">${capitalizedKeyword}</span>${space}${highlightedRest}</div>`;
     }
     
     return `<div>${line || '&nbsp;'}</div>`;
@@ -21,4 +21,3 @@ export const applySyntaxHighlighting = (text: string) => {
   
   return highlightedLines.join('');
 };
-

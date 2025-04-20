@@ -1,19 +1,23 @@
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { applySyntaxHighlighting } from '@/utils/gherkinHighlighter';
+import { Button } from '@/components/ui/button';
+import { Import } from 'lucide-react';
+
+const KEYWORDS = ['Feature:', 'Scenario:', 'Given', 'When', 'Then', 'And', 'But'];
 
 interface GherkinEditorProps {
   content: string;
   onContentChange: (content: string) => void;
   onSave: () => void;
+  onImport: (content: string) => void;
 }
 
-export const GherkinEditor = ({ content, onContentChange, onSave }: GherkinEditorProps) => {
+export const GherkinEditor = ({ content, onContentChange, onSave, onImport }: GherkinEditorProps) => {
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const highlightedContentRef = useRef<HTMLDivElement>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [suggestionsItems, setSuggestionsItems] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [cursorPosition, setCursorPosition] = useState({ line: 0, ch: 0 });
 
   const handleEditorInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -24,6 +28,19 @@ export const GherkinEditor = ({ content, onContentChange, onSave }: GherkinEdito
       onContentChange(text);
     }
     
+    const lines = text.split('\n');
+    const currentLine = lines[lines.length - 1].trim();
+    
+    if (currentLine && !currentLine.includes(':')) {
+      const matchingKeywords = KEYWORDS.filter(keyword => 
+        keyword.toLowerCase().startsWith(currentLine.toLowerCase())
+      );
+      setSuggestions(matchingKeywords);
+      setShowSuggestions(matchingKeywords.length > 0);
+    } else {
+      setShowSuggestions(false);
+    }
+
     if (highlightedContentRef.current) {
       highlightedContentRef.current.innerHTML = applySyntaxHighlighting(text);
       
@@ -40,6 +57,36 @@ export const GherkinEditor = ({ content, onContentChange, onSave }: GherkinEdito
     
     if (isAtStart && (e.key === "Backspace" || e.key === "Delete")) {
       e.preventDefault();
+      return;
+    }
+
+    if (showSuggestions && e.key === "Tab") {
+      e.preventDefault();
+      if (suggestions.length > 0) {
+        const cursorPos = e.currentTarget.selectionStart;
+        const textBeforeCursor = content.substring(0, cursorPos);
+        const lastWord = textBeforeCursor.split(/\s+/).pop() || "";
+        const suggestion = suggestions[0];
+        
+        const newContent = content.substring(0, cursorPos - lastWord.length) + 
+          suggestion + 
+          content.substring(cursorPos);
+        
+        onContentChange(newContent);
+        setShowSuggestions(false);
+      }
+    }
+  };
+
+  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        onImport(content);
+      };
+      reader.readAsText(file);
     }
   };
 
@@ -68,9 +115,9 @@ export const GherkinEditor = ({ content, onContentChange, onSave }: GherkinEdito
       </div>
 
       <div className="flex gap-2 mb-4">
-        <button 
+        <Button 
           onClick={onSave}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded hover:bg-primary/90 transition-colors"
+          className="flex items-center gap-2"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
@@ -78,8 +125,64 @@ export const GherkinEditor = ({ content, onContentChange, onSave }: GherkinEdito
             <polyline points="7 3 7 8 15 8"></polyline>
           </svg>
           <span>Kaydet</span>
-        </button>
+        </Button>
+
+        <Button
+          variant="secondary"
+          onClick={() => document.getElementById('file-import')?.click()}
+          className="flex items-center gap-2"
+        >
+          <Import className="h-4 w-4" />
+          <span>İçeri Aktar</span>
+        </Button>
+        <input
+          id="file-import"
+          type="file"
+          accept=".feature,.txt"
+          onChange={handleFileImport}
+          className="hidden"
+        />
+
+        <Button 
+          variant="secondary"
+          onClick={exportTestCases}
+          className="flex items-center gap-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Dışa Aktar
+        </Button>
       </div>
+
+      {showSuggestions && (
+        <div className="absolute top-[320px] left-4 bg-popover border border-border rounded-md shadow-md">
+          {suggestions.map((suggestion, index) => (
+            <div
+              key={index}
+              className="px-4 py-2 hover:bg-accent cursor-pointer"
+              onClick={() => {
+                if (editorRef.current) {
+                  const cursorPos = editorRef.current.selectionStart;
+                  const textBeforeCursor = content.substring(0, cursorPos);
+                  const lastWord = textBeforeCursor.split(/\s+/).pop() || "";
+                  
+                  const newContent = content.substring(0, cursorPos - lastWord.length) + 
+                    suggestion + 
+                    content.substring(cursorPos);
+                  
+                  onContentChange(newContent);
+                  setShowSuggestions(false);
+                }
+              }}
+            >
+              {suggestion}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

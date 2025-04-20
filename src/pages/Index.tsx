@@ -5,6 +5,7 @@ import { GherkinEditor } from "@/components/GherkinEditor";
 import { TestList } from "@/components/TestList";
 import { useTestCases } from "@/hooks/useTestCases";
 import { applySyntaxHighlighting } from "@/utils/gherkinHighlighter";
+import { toast } from "sonner";
 
 const Index = () => {
   const [editorContent, setEditorContent] = useState("Scenario: ");
@@ -16,7 +17,8 @@ const Index = () => {
     saveTestCase,
     editTestCase,
     deleteTestCase,
-    exportTestCases
+    exportTestCases,
+    importTestCase
   } = useTestCases();
 
   const handleSave = () => {
@@ -37,6 +39,21 @@ const Index = () => {
     }
   };
 
+  const handleImport = (content: string) => {
+    try {
+      if (content.trim()) {
+        importTestCase(content);
+        toast("Başarılı", {
+          description: "Test senaryosu içeri aktarıldı."
+        });
+      }
+    } catch (error) {
+      toast("Hata", {
+        description: "Test senaryosu içeri aktarılamadı."
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-6 max-w-full">
       <h1 className="text-2xl font-bold mb-6">Cucumber Gherkin Test Case Editor</h1>
@@ -48,20 +65,9 @@ const Index = () => {
               content={editorContent}
               onContentChange={setEditorContent}
               onSave={handleSave}
+              onImport={handleImport}
             />
             
-            <button 
-              onClick={exportTestCases}
-              className="flex items-center gap-2 bg-secondary text-secondary-foreground px-4 py-2 rounded hover:bg-secondary/90 transition-colors border border-border mb-4"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              Dışa Aktar
-            </button>
-
             <h2 className="text-xl font-semibold mb-4">Kaydedilmiş Test Senaryoları</h2>
             <TestList
               tests={savedTests}
@@ -99,4 +105,3 @@ const Index = () => {
 };
 
 export default Index;
-
