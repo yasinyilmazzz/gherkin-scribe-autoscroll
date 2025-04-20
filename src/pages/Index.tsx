@@ -290,79 +290,62 @@ const Index = () => {
     };
   }, []);
 
+  // Add the missing handleTestClick function
+  const handleTestClick = (content: string) => {
+    setSelectedTest(content);
+  };
+
   // Render
   return (
     <div className="container mx-auto px-4 py-6 max-w-full">
       <h1 className="text-2xl font-bold mb-6">Cucumber Gherkin Test Case Editor</h1>
       
-      <div className="flex gap-2 mb-4">
-        <button 
-          onClick={saveTestCase}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded hover:bg-primary/90 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-            <polyline points="17 21 17 13 7 13 7 21"></polyline>
-            <polyline points="7 3 7 8 15 8"></polyline>
-          </svg>
-          <span>{editingId ? 'Güncelle' : 'Kaydet'}</span>
-        </button>
-        <button 
-          onClick={exportTestCases}
-          className="flex items-center gap-2 bg-secondary text-secondary-foreground px-4 py-2 rounded hover:bg-secondary/90 transition-colors border border-border"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          Dışa Aktar
-        </button>
-      </div>
-
       <ResizablePanelGroup direction="horizontal" className="min-h-[600px] rounded-lg border">
         <ResizablePanel defaultSize={50}>
           <div className="h-full p-4">
-            <div className="relative h-full">
-              <div className="w-full h-[300px] border border-border rounded-lg bg-background relative mb-8">
-                <textarea
-                  ref={editorRef}
-                  value={editorContent}
-                  onChange={handleEditorInput}
-                  onKeyDown={handleEditorKeyDown}
-                  className="w-full h-full font-mono text-sm resize-none border-none bg-transparent absolute top-0 left-0 p-4 text-transparent caret-foreground z-[2] whitespace-pre-wrap"
-                  onScroll={(e) => {
-                    if (highlightedContentRef.current) {
-                      highlightedContentRef.current.scrollTop = e.currentTarget.scrollTop;
-                    }
-                  }}
-                />
-                <div
-                  ref={highlightedContentRef}
-                  className="w-full h-full font-mono text-sm whitespace-pre-wrap overflow-y-auto p-4 pointer-events-none"
-                  dangerouslySetInnerHTML={{ __html: applySyntaxHighlighting(editorContent) }}
-                />
-              </div>
-              {showSuggestions && (
-                <div
-                  ref={suggestionsRef}
-                  className="absolute z-10 bg-background border border-border rounded shadow-md max-h-[200px] overflow-y-auto w-full"
-                >
-                  {suggestionsItems.map((suggestion, index) => (
-                    <div 
-                      key={index}
-                      className="p-2 hover:bg-muted cursor-pointer"
-                      onClick={() => selectSuggestion(suggestion)}
-                    >
-                      {suggestion}
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="w-full h-[300px] border border-border rounded-lg bg-background relative mb-4">
+              <textarea
+                ref={editorRef}
+                value={editorContent}
+                onChange={handleEditorInput}
+                onKeyDown={handleEditorKeyDown}
+                onScroll={handleEditorScroll}
+                className="w-full h-full font-mono text-sm resize-none border-none bg-transparent absolute top-0 left-0 p-4 text-transparent caret-foreground z-[2] whitespace-pre-wrap"
+              />
+              <div
+                ref={highlightedContentRef}
+                className="w-full h-full font-mono text-sm whitespace-pre-wrap overflow-y-auto p-4 pointer-events-none"
+                dangerouslySetInnerHTML={{ __html: applySyntaxHighlighting(editorContent) }}
+              />
+            </div>
+
+            <div className="flex gap-2 mb-4">
+              <button 
+                onClick={saveTestCase}
+                className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded hover:bg-primary/90 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                <span>{editingId ? 'Güncelle' : 'Kaydet'}</span>
+              </button>
+              <button 
+                onClick={exportTestCases}
+                className="flex items-center gap-2 bg-secondary text-secondary-foreground px-4 py-2 rounded hover:bg-secondary/90 transition-colors border border-border"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Dışa Aktar
+              </button>
             </div>
 
             <h2 className="text-xl font-semibold mb-4">Kaydedilmiş Test Senaryoları</h2>
-            <div className="grid gap-4">
+            <div className="grid gap-4 overflow-y-auto max-h-[calc(100vh-600px)]">
               {savedTests.length === 0 ? (
                 <div className="text-muted-foreground text-center p-5">
                   Henüz kaydedilmiş test senaryosu yok.
@@ -404,6 +387,23 @@ const Index = () => {
                 ))
               )}
             </div>
+            
+            {showSuggestions && (
+              <div
+                ref={suggestionsRef}
+                className="absolute z-10 bg-background border border-border rounded shadow-md max-h-[200px] overflow-y-auto w-full"
+              >
+                {suggestionsItems.map((suggestion, index) => (
+                  <div 
+                    key={index}
+                    className="p-2 hover:bg-muted cursor-pointer"
+                    onClick={() => selectSuggestion(suggestion)}
+                  >
+                    {suggestion}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </ResizablePanel>
         
@@ -413,11 +413,13 @@ const Index = () => {
           <div className="h-full p-4">
             <div className="w-full h-full border border-border rounded-lg bg-background p-4">
               <pre className="font-mono text-sm whitespace-pre-wrap">
-                {selectedTest ? applySyntaxHighlighting(selectedTest) : 
+                {selectedTest ? (
+                  <div dangerouslySetInnerHTML={{ __html: applySyntaxHighlighting(selectedTest) }} />
+                ) : (
                   <div className="text-muted-foreground text-center">
                     Görüntülemek için bir test senaryosu seçin
                   </div>
-                }
+                )}
               </pre>
             </div>
           </div>
