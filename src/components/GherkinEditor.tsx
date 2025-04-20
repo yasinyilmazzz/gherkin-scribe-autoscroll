@@ -11,9 +11,16 @@ interface GherkinEditorProps {
   onContentChange: (content: string) => void;
   onSave: () => void;
   onImport: (content: string) => void;
+  exportTestCases: () => void;
 }
 
-export const GherkinEditor = ({ content, onContentChange, onSave, onImport }: GherkinEditorProps) => {
+export const GherkinEditor = ({ 
+  content, 
+  onContentChange, 
+  onSave, 
+  onImport,
+  exportTestCases 
+}: GherkinEditorProps) => {
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const highlightedContentRef = useRef<HTMLDivElement>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -186,4 +193,3 @@ export const GherkinEditor = ({ content, onContentChange, onSave, onImport }: Gh
     </div>
   );
 };
-

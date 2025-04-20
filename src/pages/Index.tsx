@@ -66,6 +66,7 @@ const Index = () => {
               onContentChange={setEditorContent}
               onSave={handleSave}
               onImport={handleImport}
+              exportTestCases={exportTestCases}
             />
             
             <h2 className="text-xl font-semibold mb-4">Kaydedilmiş Test Senaryoları</h2>
