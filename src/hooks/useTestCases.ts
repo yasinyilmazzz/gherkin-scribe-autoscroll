@@ -126,6 +126,26 @@ export const useTestCases = () => {
     setSavedTests([...savedTests]);
   };
 
+  const extractSavedSteps = () => {
+    const steps: string[] = [];
+    savedTests.forEach(test => {
+      const lines = test.content.split('\n');
+      lines.forEach(line => {
+        const trimmedLine = line.trim();
+        if (trimmedLine.startsWith('Given ') || 
+            trimmedLine.startsWith('When ') || 
+            trimmedLine.startsWith('Then ') || 
+            trimmedLine.startsWith('And ') || 
+            trimmedLine.startsWith('But ')) {
+          if (!steps.includes(trimmedLine)) {
+            steps.push(trimmedLine);
+          }
+        }
+      });
+    });
+    return steps;
+  };
+
   return {
     savedTests,
     editingId,
@@ -135,6 +155,7 @@ export const useTestCases = () => {
     editTestCase,
     deleteTestCase,
     exportTestCases,
-    importTestCase
+    importTestCase,
+    extractSavedSteps
   };
 };

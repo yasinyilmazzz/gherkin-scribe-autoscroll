@@ -3,8 +3,7 @@ import { useRef, useState, useCallback } from 'react';
 import { applySyntaxHighlighting } from '@/utils/gherkinHighlighter';
 import { Button } from '@/components/ui/button';
 import { Import } from 'lucide-react';
-
-const KEYWORDS = ['Feature:', 'Scenario:', 'Given', 'When', 'Then', 'And', 'But'];
+import { useTestCases } from '@/hooks/useTestCases';
 
 interface GherkinEditorProps {
   content: string;
@@ -21,10 +20,12 @@ export const GherkinEditor = ({
   onImport,
   exportTestCases 
 }: GherkinEditorProps) => {
+  const { extractSavedSteps } = useTestCases();
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const highlightedContentRef = useRef<HTMLDivElement>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const KEYWORDS = ['Feature:', 'Scenario:', 'Given', 'When', 'Then', 'And', 'But'];
   const [cursorPosition, setCursorPosition] = useState({ line: 0, ch: 0 });
 
   const handleEditorInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -38,12 +39,25 @@ export const GherkinEditor = ({
     const lines = text.split('\n');
     const currentLine = lines[lines.length - 1].trim();
     
-    if (currentLine && !currentLine.includes(':')) {
+    // Show keyword suggestions when line is empty or starting to type
+    if (currentLine === '' || (!currentLine.includes(':') && !currentLine.includes(' '))) {
       const matchingKeywords = KEYWORDS.filter(keyword => 
         keyword.toLowerCase().startsWith(currentLine.toLowerCase())
       );
       setSuggestions(matchingKeywords);
       setShowSuggestions(matchingKeywords.length > 0);
+    } 
+    // Show saved step suggestions when typing after a keyword
+    else if (currentLine.match(/^(Given|When|Then|And|But)\s+.+/i)) {
+      const [keyword, ...rest] = currentLine.split(' ');
+      const searchText = rest.join(' ').toLowerCase();
+      const savedSteps = extractSavedSteps();
+      const matchingSteps = savedSteps.filter(step => 
+        step.toLowerCase().includes(searchText) && 
+        step.startsWith(keyword)
+      );
+      setSuggestions(matchingSteps);
+      setShowSuggestions(matchingSteps.length > 0);
     } else {
       setShowSuggestions(false);
     }
@@ -72,12 +86,14 @@ export const GherkinEditor = ({
       if (suggestions.length > 0) {
         const cursorPos = e.currentTarget.selectionStart;
         const textBeforeCursor = content.substring(0, cursorPos);
-        const lastWord = textBeforeCursor.split(/\s+/).pop() || "";
+        const lines = textBeforeCursor.split('\n');
+        const currentLine = lines[lines.length - 1];
         const suggestion = suggestions[0];
         
-        const newContent = content.substring(0, cursorPos - lastWord.length) + 
-          suggestion + 
-          content.substring(cursorPos);
+        // Replace only the current line
+        const newLines = [...lines.slice(0, -1), suggestion];
+        const newContent = newLines.join('\n') + 
+          content.substring(cursorPos + currentLine.length);
         
         onContentChange(newContent);
         setShowSuggestions(false);
@@ -165,20 +181,22 @@ export const GherkinEditor = ({
       </div>
 
       {showSuggestions && (
-        <div className="absolute top-[320px] left-4 bg-popover border border-border rounded-md shadow-md">
+        <div className="absolute top-[320px] left-4 bg-popover border border-border rounded-md shadow-md max-h-[200px] overflow-y-auto w-[600px]">
           {suggestions.map((suggestion, index) => (
             <div
               key={index}
-              className="px-4 py-2 hover:bg-accent cursor-pointer"
+              className="px-4 py-2 hover:bg-accent cursor-pointer text-sm font-mono"
               onClick={() => {
                 if (editorRef.current) {
                   const cursorPos = editorRef.current.selectionStart;
                   const textBeforeCursor = content.substring(0, cursorPos);
-                  const lastWord = textBeforeCursor.split(/\s+/).pop() || "";
+                  const lines = textBeforeCursor.split('\n');
+                  const currentLine = lines[lines.length - 1];
                   
-                  const newContent = content.substring(0, cursorPos - lastWord.length) + 
-                    suggestion + 
-                    content.substring(cursorPos);
+                  // Replace only the current line
+                  const newLines = [...lines.slice(0, -1), suggestion];
+                  const newContent = newLines.join('\n') + 
+                    content.substring(cursorPos + currentLine.length);
                   
                   onContentChange(newContent);
                   setShowSuggestions(false);
