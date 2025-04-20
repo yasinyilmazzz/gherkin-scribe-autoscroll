@@ -1,6 +1,6 @@
-
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/components/ui/sonner";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 const Index = () => {
   // DOM Refs
@@ -9,12 +9,13 @@ const Index = () => {
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // State
-  const [editorContent, setEditorContent] = useState("");
+  const [editorContent, setEditorContent] = useState("Scenario: ");
   const [savedTests, setSavedTests] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [cursorPosition, setCursorPosition] = useState({ line: 0, ch: 0 });
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestionsItems, setSuggestionsItems] = useState<string[]>([]);
+  const [selectedTest, setSelectedTest] = useState<string | null>(null);
 
   // Load saved tests from local storage
   useEffect(() => {
@@ -71,10 +72,14 @@ const Index = () => {
     return steps;
   };
 
-  // Handle editor input
+  // Handle editor input with protected "Scenario: " prefix
   const handleEditorInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
-    setEditorContent(text);
+    if (!text.startsWith("Scenario: ")) {
+      setEditorContent("Scenario: " + text);
+    } else {
+      setEditorContent(text);
+    }
     
     if (highlightedContentRef.current) {
       highlightedContentRef.current.innerHTML = applySyntaxHighlighting(text);
@@ -118,6 +123,16 @@ const Index = () => {
       }
     } else {
       setShowSuggestions(false);
+    }
+  };
+
+  // Handle editor key events to prevent deleting "Scenario: "
+  const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const cursorPosition = e.currentTarget.selectionStart;
+    const isAtStart = cursorPosition <= 10; // Length of "Scenario: "
+    
+    if (isAtStart && (e.key === "Backspace" || e.key === "Delete")) {
+      e.preventDefault();
     }
   };
 
@@ -277,7 +292,7 @@ const Index = () => {
 
   // Render
   return (
-    <div className="container mx-auto px-4 py-6 max-w-5xl">
+    <div className="container mx-auto px-4 py-6 max-w-full">
       <h1 className="text-2xl font-bold mb-6">Cucumber Gherkin Test Case Editor</h1>
       
       <div className="flex gap-2 mb-4">
@@ -304,131 +319,114 @@ const Index = () => {
           Dışa Aktar
         </button>
       </div>
-      
-      <div className="relative mb-8">
-        <div className="w-full h-[300px] border border-border rounded-lg bg-background relative">
-          <textarea
-            ref={editorRef}
-            value={editorContent}
-            onChange={handleEditorInput}
-            onScroll={handleEditorScroll}
-            className="w-full h-full font-mono text-sm resize-none border-none bg-transparent absolute top-0 left-0 p-4 text-transparent caret-foreground z-[2] whitespace-pre-wrap"
-            placeholder="Gherkin test senaryonuzu yazmaya başlayın..."
-          />
-          <div
-            ref={highlightedContentRef}
-            className="w-full h-full font-mono text-sm whitespace-pre-wrap overflow-y-auto p-4 pointer-events-none"
-            dangerouslySetInnerHTML={{ __html: applySyntaxHighlighting(editorContent) }}
-          />
-        </div>
-        {showSuggestions && (
-          <div
-            ref={suggestionsRef}
-            className="absolute z-10 bg-background border border-border rounded shadow-md max-h-[200px] overflow-y-auto w-full"
-            style={{ 
-              top: '300px',
-              display: showSuggestions ? 'block' : 'none'
-            }}
-          >
-            {suggestionsItems.map((suggestion, index) => (
-              <div 
-                key={index}
-                className="p-2 hover:bg-muted cursor-pointer"
-                onClick={() => selectSuggestion(suggestion)}
-              >
-                {suggestion}
+
+      <ResizablePanelGroup direction="horizontal" className="min-h-[600px] rounded-lg border">
+        <ResizablePanel defaultSize={50}>
+          <div className="h-full p-4">
+            <div className="relative h-full">
+              <div className="w-full h-[300px] border border-border rounded-lg bg-background relative mb-8">
+                <textarea
+                  ref={editorRef}
+                  value={editorContent}
+                  onChange={handleEditorInput}
+                  onKeyDown={handleEditorKeyDown}
+                  className="w-full h-full font-mono text-sm resize-none border-none bg-transparent absolute top-0 left-0 p-4 text-transparent caret-foreground z-[2] whitespace-pre-wrap"
+                  onScroll={(e) => {
+                    if (highlightedContentRef.current) {
+                      highlightedContentRef.current.scrollTop = e.currentTarget.scrollTop;
+                    }
+                  }}
+                />
+                <div
+                  ref={highlightedContentRef}
+                  className="w-full h-full font-mono text-sm whitespace-pre-wrap overflow-y-auto p-4 pointer-events-none"
+                  dangerouslySetInnerHTML={{ __html: applySyntaxHighlighting(editorContent) }}
+                />
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-      
-      <h2 className="text-xl font-semibold mb-4">Kaydedilmiş Test Senaryoları</h2>
-      <div className="grid gap-4">
-        {savedTests.length === 0 ? (
-          <div className="text-muted-foreground text-center p-5">
-            Henüz kaydedilmiş test senaryosu yok.
-          </div>
-        ) : (
-          savedTests.map(test => (
-            <div key={test.id} className="border border-border rounded-lg bg-card">
-              <div 
-                className="flex justify-between items-center p-4 cursor-pointer"
-                onClick={() => {
-                  const content = document.getElementById(`content-${test.id}`);
-                  if (content) content.classList.toggle('hidden');
-                }}
-              >
-                <div className="font-semibold">{test.title}</div>
-                <div className="flex gap-1">
-                  <button 
-                    className="p-1 text-muted-foreground hover:text-foreground"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      editTestCase(test.id);
-                    }}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                  </button>
-                  <button 
-                    className="p-1 text-muted-foreground hover:text-foreground"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteTestCase(test.id);
-                    }}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                      <line x1="10" y1="11" x2="10" y2="17"></line>
-                      <line x1="14" y1="11" x2="14" y2="17"></line>
-                    </svg>
-                  </button>
+              {showSuggestions && (
+                <div
+                  ref={suggestionsRef}
+                  className="absolute z-10 bg-background border border-border rounded shadow-md max-h-[200px] overflow-y-auto w-full"
+                >
+                  {suggestionsItems.map((suggestion, index) => (
+                    <div 
+                      key={index}
+                      className="p-2 hover:bg-muted cursor-pointer"
+                      onClick={() => selectSuggestion(suggestion)}
+                    >
+                      {suggestion}
+                    </div>
+                  ))}
                 </div>
-              </div>
-              <pre
-                id={`content-${test.id}`}
-                className="bg-muted p-3 rounded m-4 whitespace-pre-wrap font-mono text-sm hidden"
-              >
-                {test.content}
+              )}
+            </div>
+
+            <h2 className="text-xl font-semibold mb-4">Kaydedilmiş Test Senaryoları</h2>
+            <div className="grid gap-4">
+              {savedTests.length === 0 ? (
+                <div className="text-muted-foreground text-center p-5">
+                  Henüz kaydedilmiş test senaryosu yok.
+                </div>
+              ) : (
+                savedTests.map(test => (
+                  <div key={test.id} className="border border-border rounded-lg bg-card">
+                    <div className="flex justify-between items-center p-4">
+                      <div 
+                        className="font-semibold cursor-pointer flex-grow"
+                        onClick={() => handleTestClick(test.content)}
+                      >
+                        {test.title}
+                      </div>
+                      <div className="flex gap-1">
+                        <button 
+                          className="p-1 text-muted-foreground hover:text-foreground"
+                          onClick={() => editTestCase(test.id)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                          </svg>
+                        </button>
+                        <button 
+                          className="p-1 text-muted-foreground hover:text-foreground"
+                          onClick={() => deleteTestCase(test.id)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </ResizablePanel>
+        
+        <ResizableHandle withHandle />
+        
+        <ResizablePanel defaultSize={50}>
+          <div className="h-full p-4">
+            <div className="w-full h-full border border-border rounded-lg bg-background p-4">
+              <pre className="font-mono text-sm whitespace-pre-wrap">
+                {selectedTest ? applySyntaxHighlighting(selectedTest) : 
+                  <div className="text-muted-foreground text-center">
+                    Görüntülemek için bir test senaryosu seçin
+                  </div>
+                }
               </pre>
             </div>
-          ))
-        )}
-      </div>
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
 
       <footer className="mt-10 pt-5 text-center text-muted-foreground text-sm border-t border-border">
         Created by yasin yilmaz @2025
       </footer>
-
-      <style jsx global>{`
-        .keyword {
-          font-weight: 600;
-        }
-        
-        .parameter {
-          color: #ef4444;
-        }
-        
-        .editor textarea::-webkit-scrollbar,
-        .highlighted-content::-webkit-scrollbar {
-          width: 8px;
-        }
-        
-        .editor textarea::-webkit-scrollbar-track,
-        .highlighted-content::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        
-        .editor textarea::-webkit-scrollbar-thumb,
-        .highlighted-content::-webkit-scrollbar-thumb {
-          background-color: #d1d5db;
-          border-radius: 4px;
-        }
-      `}</style>
     </div>
   );
 };
